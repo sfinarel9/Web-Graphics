@@ -1,0 +1,83 @@
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="content-type" content="text/html; charset=ISO-8859-1">
+
+    <script type="text/javascript" src="glMatrix-0.9.5.min.js"></script>
+    <script type="text/javascript" src="utils.js"></script>
+    <script type="text/javascript" src="Lab9_src.js"></script>
+
+    <script id="shader-fs" type="x-shader/x-fragment">
+         precision mediump float;
+
+         varying vec2 vTextureCoord;
+         varying vec3 vNormal;
+         varying vec4 vPosition;
+
+         uniform sampler2D uSampler;
+         uniform vec3 uLightingDirection;
+         uniform vec3 uDirectionalColor;
+         uniform vec3 uSpecularColor;
+         uniform float uHardness;
+
+         uniform vec3 uAmbientColor;
+
+
+         void main(void) {
+            vec4 textureColor = texture2D(uSampler, vec2(vTextureCoord.s, vTextureCoord.t));
+
+            vec3 nNormal = normalize(vNormal);
+
+            float directionalLightWeighting = max(dot(nNormal, uLightingDirection), 0.0);
+
+            float specular = 0.0; 
+            
+            
+            if (directionalLightWeighting > 0.0) { // Only calculate specular light if the is diffuse lighting on this point.
+                vec3 R = reflect(-uLightingDirection, nNormal); // The reflected direction of the light, with respect to the normal.
+
+                
+                vec3 V = normalize(-(vPosition.xyz / vPosition.w)); // The direction towards the camera.
+                float specularAngle = max(dot(R, V), 0.0); // This value is in the range 0 - 1, depending on the value.
+
+                specular = pow(specularAngle, uHardness); // Finally we calculate the specularity.
+            }
+            vec3 vLightWeighting = (specular   * uSpecularColor) +specular  + uDirectionalColor * directionalLightWeighting
+            + uAmbientColor; 
+
+            gl_FragColor = vec4(textureColor.rgb * vLightWeighting, textureColor.a);}
+        </script>
+
+    <script id="shader-vs" type="x-shader/x-vertex">
+         attribute vec3 aVertexPosition;
+         attribute vec3 aVertexNormal;
+         attribute vec2 aTextureCoord; // ** Texture coordinates of the current vertex.
+
+         uniform mat4 uMVMatrix;
+         uniform mat4 uPMatrix;
+         uniform mat3 uNMatrix;
+
+         varying vec2 vTextureCoord;
+         varying vec3 vNormal;
+         varying vec4 vPosition;
+
+         void main(void) {
+            vec4 vsPosition = uMVMatrix * vec4(aVertexPosition, 1.0);
+
+            vPosition = vsPosition;
+
+            gl_Position = uPMatrix * vsPosition;
+            vTextureCoord = aTextureCoord;
+
+
+            vNormal = uNMatrix * aVertexNormal;
+        }
+        </script>
+</head>
+
+<body onload="webGLStart();">
+    <canvas id="canvas" style="border: none;" width="1000" height="800"></canvas>
+</body>
+
+</html>
